@@ -1,6 +1,6 @@
 name: HouseCapture
 options:
-  bundleIdPrefix: com.williamvest
+  bundleIdPrefix: com.toldwell
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -18,9 +18,10 @@ targets:
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        PRODUCT_BUNDLE_IDENTIFIER: com.williamvest.housecapture
-        # Will's personal team (free: profiles last 7 days, then rebuild/reinstall)
-        DEVELOPMENT_TEAM: D255V5QY5L
+        PRODUCT_BUNDLE_IDENTIFIER: com.toldwell.roomscan
+        # Sarah Howell's team, the account Tiles ships under (Will's call, 2026-10-24).
+        # Signed with the team key in tw-vault (ASC_KEY_*), not an Xcode account.
+        DEVELOPMENT_TEAM: 5KB4D246F2
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
     info:
