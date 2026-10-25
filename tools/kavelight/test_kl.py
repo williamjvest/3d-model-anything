@@ -84,6 +84,14 @@ class PlanTests(unittest.TestCase):
         win = next(s['args'] for s in self.steps if s['tool'] == 'add_opening' and s['args']['type'] == 'window')
         self.assertEqual(win['sill'], 0.9)
 
+    def test_props_stand_on_the_kit_floor_and_hide_first(self):
+        steps = kl.plan_steps(self.spec, room_side=1, hide=['Floor'])
+        self.assertEqual(steps[0]['tool'], 'set_visibility')
+        self.assertEqual(steps[0]['args'], {'nodes': ['Floor'], 'visible': False})
+        table = next(s['args'] for s in steps if s['tool'] == 'build_prop')
+        self.assertEqual(table['position'], [1.0, 0.05, 0.5])  # on the 5 cm kit floor, not snapped onto a neighbour
+        self.assertFalse(table['snap_to_surface'])
+
     def test_floor_and_ceiling(self):
         floor = self.steps[0]['args']
         self.assertEqual(floor['type'], 'floor')

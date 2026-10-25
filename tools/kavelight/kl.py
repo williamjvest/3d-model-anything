@@ -334,11 +334,17 @@ def centrelines(spec):
     return lines
 
 
-def plan_steps(spec, room_side=1, new_scene=None):
+def plan_steps(spec, room_side=1, new_scene=None, hide=()):
     steps = []
     if new_scene:
         steps.append({'tool': 'new_scene', 'ref': 'scene', 'args': new_scene})
+    hide = list(hide) + list(spec.get('hide_first') or [])
+    if hide:  # e.g. the 6 m "Floor" every new or imported scene starts with; it z-fights a kit floor
+        steps.append({'tool': 'set_visibility', 'ref': 'hide ' + ', '.join(hide), 'continue_on_error': True,
+                      'args': {'nodes': hide, 'visible': False}})
     mats = spec.get('materials') or {}
+    # A kit floor is a 5 cm slab standing on y = 0, so its walkable top is y = 0.05.
+    ground = 0.05 if spec.get('floor') else 0.0
     if spec.get('floor'):
         f = spec['floor']
         args = {'type': 'floor', 'name': f.get('name', f"{spec['name']} floor"), 'center': f['center'], 'size': f['size']}
@@ -384,10 +390,14 @@ def plan_steps(spec, room_side=1, new_scene=None):
             part['color'] = p['color']
         if p.get('round'):
             part['round'] = p['round']
+        # Floor-standing boxes go exactly on the floor. Snapping looks up to ~1 m above the given
+        # height, so a cabinet whose box overlaps a bench's would land on the bench top.
+        on_floor = p.get('bottom', 0) < 0.15
         steps.append({'tool': 'build_prop', 'ref': p['name'], 'args': {
             'name': p['name'], 'parts': p.get('parts') or [part],
-            'position': [p['center'][0], max(0.0, p.get('bottom', 0)), p['center'][1]],
-            'heading_degrees': p.get('heading_degrees', 0), 'snap_to_surface': p.get('snap', True)}})
+            'position': [p['center'][0], ground if on_floor else round(p['bottom'] + ground, 3), p['center'][1]],
+            'heading_degrees': p.get('heading_degrees', 0),
+            'snap_to_surface': p.get('snap', not on_floor)}})
     steps.extend(spec.get('extra_steps', []))
     return steps
 
@@ -578,6 +588,8 @@ def main():
     b.add_argument('--room-side', type=int, default=1, help="add_opening side value meaning 'room on the right of from -> to'")
     b.add_argument('--new-scene', help='JSON for new_scene first, e.g. {"start":"empty","location":"GARAGE","setting":"INT"}')
     b.add_argument('--draw', help='also draw the set to this PNG')
+    b.add_argument('--hide', action='append', default=[],
+                   help='hide this existing node first, e.g. --hide Floor (a new scene\'s default floor)')
     b.add_argument('--keep-going', action='store_true',
                    help='mark every step continue_on_error (each is its own undo step; report all failures at once)')
     c = sp.add_parser('run', help='replay steps.json in KaveLight through OpenCode')
@@ -610,7 +622,7 @@ def main():
             print('  plan:', args.plan)
     elif args.cmd == 'plan':
         spec = json.load(open(args.spec))
-        steps = plan_steps(spec, args.room_side, json.loads(args.new_scene) if args.new_scene else None)
+        steps = plan_steps(spec, args.room_side, json.loads(args.new_scene) if args.new_scene else None, args.hide)
         if args.keep_going:
             for s in steps:
                 s['continue_on_error'] = True
