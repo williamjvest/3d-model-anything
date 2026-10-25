@@ -578,6 +578,8 @@ def main():
     b.add_argument('--room-side', type=int, default=1, help="add_opening side value meaning 'room on the right of from -> to'")
     b.add_argument('--new-scene', help='JSON for new_scene first, e.g. {"start":"empty","location":"GARAGE","setting":"INT"}')
     b.add_argument('--draw', help='also draw the set to this PNG')
+    b.add_argument('--keep-going', action='store_true',
+                   help='mark every step continue_on_error (each is its own undo step; report all failures at once)')
     c = sp.add_parser('run', help='replay steps.json in KaveLight through OpenCode')
     c.add_argument('steps')
     c.add_argument('--out', default=None)
@@ -609,6 +611,9 @@ def main():
     elif args.cmd == 'plan':
         spec = json.load(open(args.spec))
         steps = plan_steps(spec, args.room_side, json.loads(args.new_scene) if args.new_scene else None)
+        if args.keep_going:
+            for s in steps:
+                s['continue_on_error'] = True
         json.dump({'format': 'kavelight-steps/1', 'set': spec['name'], 'steps': steps}, open(args.o, 'w'), indent=1)
         tally = {}
         for s in steps:
